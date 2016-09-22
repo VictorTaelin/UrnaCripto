@@ -11,6 +11,7 @@ var app = React.createClass({
     return {
       referendum: null,
       output: "",
+      showModal: null,
       inputs: {
         viewReferendum: "",
         viewVoter: "",
@@ -82,6 +83,48 @@ var app = React.createClass({
       }.bind(this));
   },
   vote: function(){
+    var reload = function(){
+      location.reload();
+      console.log("reloading");
+    }.bind(this);
+    var sign = function(){
+      this.setState({showModal: <div>
+        <p>Gerando assinatura criptográfica.</p>
+        <p>Isso pode levar alguns instantes.</p>
+      </div>});
+      setTimeout(function(){
+        var signature = lrs.sign(referendum.publicKeys, keys, optionMessage(referendum, option));
+        xhr.post({
+          "url": "/api/v1/referendums/"+this.state.referendum.id+"/vote",
+          "headers": {"Content-Type": "application/json"},
+          "body": JSON.stringify({option: option, signature: signature})},
+          function(err,resp,body){
+            if (body === "Sucesso!"){
+              var receipt 
+                = "Este documento comprova seu voto no referendo '"+referendum.id+"'. "
+                + "Caso desconfie que ele foi desconsiderado na contagem "
+                + "final, verifique se a assinatura abaixo consta na prova "
+                + "do resultado. Caso negativo, houve fraude na contagem. "
+                + "Divulgue este documento como prova. Assinatura:\n\n"
+                + signature;
+              var download = "data:text/plain;charset=utf-8,"+encodeURIComponent(receipt);
+              this.setState({showModal: <div>
+                <p>Voto confirmado!{"\u0020"}</p>
+                <p><a className="modalLink" onClick={reload} href={download} download="comprovante.txt">
+                    Clique aqui
+                  </a>{"\u0020"}
+                  para baixar o comprovante.
+                </p>
+              </div>});
+            } else {
+              this.setState({showModal: <div>
+                <p>{body}</p>
+              </div>});
+              setTimeout(reload, 4000);
+            };
+          }.bind(this));
+      }.bind(this), 1);
+    }.bind(this);
     var referendum = this.state.referendum;
     var login = this.state.inputs.newVoteLogin;
     var password = this.state.inputs.newVotePassword;
@@ -92,28 +135,11 @@ var app = React.createClass({
         keys.publicKey = referendum.publicKeys[i];
     if (!keys.publicKey)
       return alert("Login inválido.");
-    if (!confirm
-      ( "Confirme que deseja utilizar sua senha secreta para:\n\n"
-      + "1. Assinar a mensagem: "
-      + "\""+optionMessage(referendum, option)+"\";\n\n"
-      + "2. Anonimizar essa assinatura, de modo a garantir que seu "
-      + "voto permaneça secreto;\n\n"
-      + "3. Divulgar essa assinatura aos demais participantes "
-      + "do referendo, para que estes possam provar a existência "
-      + "incontestável de um voto válido para a opção '"+option+"'.\n\n"
-      + "Nota: este processo pode levar alguns segundos.\n"))
-      return alert("Assinatura não gerada.");
-    var signature = lrs.sign(referendum.publicKeys, keys, optionMessage(referendum, option));
-    xhr.post({
-      "url": "/api/v1/referendums/"+this.state.referendum.id+"/vote",
-      "headers": {"Content-Type": "application/json"},
-      "body": JSON.stringify({option: option, signature: signature})},
-      function(err,resp,body){
-        if (body === "Sucesso!"){
-          alert("Seu voto foi aceito.");
-          location.reload();
-        } else alert(body);
-      });
+    this.setState({showModal: <div>
+      <p>Deseja assinar a seguinte declaração?</p>
+      <p className="optionMessage">"{optionMessage(referendum, option)}"</p>
+      <p><button onClick={sign}>Sim</button><button onClick={reload}>Não</button></p>
+    </div>});
   },
   generate: function(){
     var login = this.state.inputs.newVoterLogin;
@@ -151,20 +177,32 @@ var app = React.createClass({
   prove: function(){
     var referendum = this.state.referendum;
 
-    this.setState({output
-      : "Realizando verificação independente do resultado do "
-      + "referendo. Isso pode levar cerca de um minuto."});
+    var confirmMessage
+      = "Desejar validar a prova do resultado do referendo "
+      + "neste computador? Isso pode levar alguns minutos.";
+
+    if (!confirm(confirmMessage))
+      return;
+
+    this.setState({output: "Seu computador está validando a prova do resultado. Por favor, aguarde."});
 
     setTimeout(function(){
+
+      // Are all votes signed by a valid voter?
       for (var i=0, l=referendum.votes.length; i<l; ++i)
-        if (!(lrs.verify(referendum.publicKeys, referendum.votes[i].signature, optionMessage(referendum, referendum.votes[i].option))))
+        if (!(lrs.verify(
+            referendum.publicKeys,
+            referendum.votes[i].signature,
+            optionMessage(referendum, referendum.votes[i].option))))
           return alert("Esse resultado NÃO está correto. Foram encontrados votos inválidos!");
 
+      // Are there no duplicate votes?
       for (var i=0, l=referendum.votes.length; i<l; ++i)
         for (var j=i+1; j<l; ++j)
           if (lrs.link(referendum.votes[i].signature, referendum.votes[j].signature))
             return alert("Esse resultado NÃO está correto. Foram encontrados votos duplicados!");
 
+      // Then this result is correct.
       this.setState({output
         : "Verificação realizada com sucesso. De acordo com os "
         + "procedimentos de validação e contagem implementados "
@@ -177,13 +215,14 @@ var app = React.createClass({
         + "ring signatures: Security models and new schemes\". ICCSA. "
         + "2: 614–623. doi:10.1007/11424826_65.\n"});
     }.bind(this), 1);
+
   },
   viewProof: function(){
     var referendum = this.state.referendum;
     var l = referendum.votes.length;
     this.state.output
       = "Este documento prova que o "
-      + "referendo de id `"+referendum.id+"` "
+      + "referendo de id '"+referendum.id+"' "
       + "e título '"+referendum.title+"', "
       + "realizado entre as partes identificadas por:\n\n"
       + referendum.voters.map(function(v){return "  - "+v}).join("\n")+"\n\n"
@@ -215,7 +254,7 @@ var app = React.createClass({
       + "forjar uma assinatura`S = sign(ps, [PV(p),PB(p)], M)` "
       + "de modo que `verify(ps, S, M)` seja verdadeiro. Ainda conforme "
       + "[1], sabe-se que revelar o autor de uma assinatura é tão difícil "
-      + "quanto o problema do logarítmo discreto e, portanto, impraticável. "
+      + "quanto o problema do logaritmo discreto e, portanto, impraticável. "
       + "Finalmente, ainda conforme [1], se duas assinaturas `Sa` e `Sb` "
       + "foram assinadas pelo mesmo autor, então `link(Sa,Sb) == true`.\n"
       + "\n"
@@ -244,9 +283,9 @@ var app = React.createClass({
       + "\n"
       + "Se cada assinatura demonstrada prova que um participante do referendo assinou uma, "
       + "e somente uma, mensagem declarando sua intenção de voto, e se o autor de cada assinatura "
-      + "específica é secreto devido à dificuldade do logaritmo discreto, conclui-se, portanto, que "
-      + "uma contagem simples destas declarações de voto nos dá o verdadeiro e infalsificável "
-      + "resultado deste referendo, conforme se queria demonstrar.\n"
+      + "específica é secreto, conclui-se, portanto, que uma contagem simples destas declarações "
+      + "de voto nos dá o verdadeiro e irrefutável resultado deste referendo, conforme se "
+      + "queria demonstrar.\n"
       + "\n"
       + "[1] Liu, Joseph K.; Wong, Duncan S. (2005). \"Linkable "
       + "ring signatures: Security models and new schemes\". ICCSA. "
@@ -355,25 +394,6 @@ var app = React.createClass({
         <Page title="Proposta">
           <p>{referendum.proposal}</p>
         </Page>
-        <Page title="Resultado">
-          <table>
-            <tbody>{
-              this.results(referendum).map(function(result,i){
-                return <tr key={i}>
-                  <td>- {result.option}: </td>
-                  <td>{result.count}</td>
-                </tr>;
-              })
-            }</tbody>
-          </table>
-          <p>({referendum.votes.length} / {referendum.voters.length} votaram)</p>
-        </Page>
-        <Page title="Validação" onToggle={this.hideOutput}>
-          <div><button className="actionButton" onClick={this.viewVoters}>Mostre a lista de partes envolvidas.{"\u00a0"}</button></div>
-          <div><button className="actionButton" onClick={this.viewProof}>Prove que o resultado está correto.{"\u00a0"}</button></div>
-          <div><button className="actionButton" onClick={this.prove}>Verifique a prova neste computador.</button></div>
-          {this.state.output ? <textarea cols="40" rows="16" value={this.state.output} readOnly></textarea> : ""}
-        </Page>
         <Page title="Votar">
           <table>
             <tbody>
@@ -401,8 +421,40 @@ var app = React.createClass({
           </table>
           <button onClick={this.vote}>Votar!</button>
         </Page>
+        <Page title="Resultado">
+          <table>
+            <tbody>{
+              this.results(referendum).map(function(result,i){
+                return <tr key={i}>
+                  <td>- {result.option}: </td>
+                  <td>{result.count}</td>
+                </tr>;
+              })
+            }</tbody>
+          </table>
+          <p>({referendum.votes.length} / {referendum.voters.length} votaram)</p>
+        </Page>
+        <Page title="Prova" onToggle={this.hideOutput}>
+          <div><button className="actionButton" onClick={this.viewVoters}>Mostre a lista de partes envolvidas.{"\u00a0"}</button></div>
+          <div><button className="actionButton" onClick={this.viewProof}>Prove que o resultado está correto.{"\u00a0"}</button></div>
+          <div><button className="actionButton" onClick={this.prove}>Verifique a prova neste computador.</button></div>
+          {this.state.output ? 
+            <div>
+              <div>
+                <textarea cols="40" rows="12" value={this.state.output} readOnly></textarea>
+              </div>
+              <div>
+                <a download="documento.txt" href={"data:text/plain;charset=utf-8,"+encodeURIComponent(this.state.output)}>
+                  Baixar
+                </a>
+              </div>
+              <br/>
+            </div> : ""}
+        </Page>
       </div>;
+    var modal = this.state.showModal ? <div className="modal">{this.state.showModal}</div> : <div/>;
     return <div id="app">
+      {modal}
       {landingPage}
       {referendumPage}
     </div>;

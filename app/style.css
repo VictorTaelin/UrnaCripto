@@ -2,12 +2,22 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
   font-size: 12px;
 }
 
 table {
   padding: 2px;
+  margin: 2px;
+}
+
+a {
+  color: black;
+  text-decoration: underline;
+  cursor: pointer;
   margin: 2px;
 }
 
@@ -83,7 +93,7 @@ button, textarea, input { outline: none; }
 }
 
 .page {}
-.page-title {
+.pageTitle {
   font-size: 18px;
   cursor: pointer;
   user-select: none;
@@ -92,7 +102,7 @@ button, textarea, input { outline: none; }
   -webkit-user-select: none;
   -o-user-select: none;
 }
-.page-title:hover {
+.pageTitle:hover {
   text-decoration: underline;
 }
 
@@ -110,3 +120,29 @@ td {
   width: 212px;
 }
 
+.modal {
+  font-family: consola, monospace;
+  width: 100%;
+  height: 100%;
+  background-color: black;
+  font-size: 20px;
+  text-align: center;
+  vertical-align: middle;
+  position: fixed;
+  left: 0px;
+  top: 0px;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modalLink {
+  color: white;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.optionMessage {
+  font-style: italic;
+  font-size: 14px;
+}

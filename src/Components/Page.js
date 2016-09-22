@@ -2,7 +2,7 @@ var React = require("react");
 var ReactDOM = require("react-dom");
 module.exports = React.createClass({
   getInitialState: function(){
-    return {expand: false};
+    return {expand: true};
   },
   toggle: function(){
     this.setState({expand: !this.state.expand});
@@ -10,10 +10,10 @@ module.exports = React.createClass({
   },
   render: function(){
     return <div className="page">
-      <div className="page-title" onClick={this.toggle}>
+      <div className="pageTitle" onClick={this.toggle}>
         {this.props.title}
       </div>
-      <div className="page-body" style={{"display":this.state.expand?"block":"none"}}>
+      <div className="pageBody" style={{"display":this.state.expand?"block":"none"}}>
         {this.props.children}
       </div>
     </div>
