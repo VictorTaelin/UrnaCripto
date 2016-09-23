@@ -489,24 +489,29 @@ var app = React.createClass({
           <table>
             <tbody>
               <tr>
+                <td>Opção:</td>
+                <td>
+                  <form>
+                    {referendum.options.map(function(option, i){
+                      var setVoteOption = function(e){
+                        console.log(option);
+                        this.state.inputs.newVoteOption = option;
+                      }.bind(this);
+                      return <p key={i}>
+                        <input type="radio" onChange={setVoteOption} name="choice"/>
+                        <span>{"\u00a0"}{option}</span>
+                      </p>
+                    }.bind(this))}
+                  </form>
+                </td>
+              </tr>
+              <tr>
                 <td>Login:</td>
                 <td>{input("newVoteLogin")}</td>
               </tr>
               <tr>
                 <td>Senha:</td>
                 <td>{input("newVotePassword", true)}</td>
-              </tr>
-              <tr>
-                <td>Opção:</td>
-                <td>
-                  <select onChange={function(e){
-                      this.state.inputs.newVoteOption = e.target.value;
-                    }.bind(this)}>
-                    {referendum.options.map(function(option, i){
-                      return <option key={i} value={option}>{option}</option>
-                    })}
-                  </select>
-                </td>
               </tr>
             </tbody>
           </table>
