@@ -1,3 +1,9 @@
+// Esse é o client do UrnaCripto, em ReactJS. O código está levemente bagunçado
+// e certamente poderia ser melhorado. De qualquer forma, é aqui que ficam as
+// funções de validação, assinatura, etc. cruciais para o funcionamento do
+// sistema, que tende a operar de maneira distribuída, sem assumir a segurança
+// de um servidor central.
+
 var xhr = require("xhr");
 var React = require("react");
 var ReactDOM = require("react-dom");
@@ -7,6 +13,7 @@ var lrs = require("lrs");
 var declaration = require("./declaration.js");
 
 var app = React.createClass({
+
   getInitialState: function(){
     return {
       referendum: null,
@@ -27,12 +34,18 @@ var app = React.createClass({
         newReferendumVoters: ""}
     };
   },
+
+  // Verifica a presença de um referendo na url e pula para a devida página.
   componentDidMount: function(){
     if (window.location.pathname !== "/"){
       this.state.inputs.viewReferendum = window.location.pathname.slice(1);
       this.viewReferendum(false)();
     }
   },
+
+  // Cria um novo referendo. Isso apenas envia os dados do referendo
+  // para o servidor (usando sua API Rest) para que este possa
+  // armazená-los e distribuí-los.
   createReferendum: function(){
     console.log("Creating referendum.");
     var inputs = this.state.inputs;
@@ -53,12 +66,19 @@ var app = React.createClass({
         } else alert(body);
       }.bind(this));
   },
+
+  // Util que reseta todo estado do site.
   cleanState: function(){
     this.setState(this.getInitialState());
   },
+
+  // Util que apaga apenas os inputs.
   emptyImputs: function(){
     return this.getInitialState().inputs;
   }, 
+
+  // Entra na página de um referendo. Utiliza a API do
+  // servidor para saber se este referendo existe.
   viewReferendum: function(showAlert){
     return function(){
       xhr.get({
@@ -72,6 +92,9 @@ var app = React.createClass({
         }.bind(this));
     }.bind(this);
   },
+
+  // Visualiza a chave-pública de um eleitor
+  // utilizando a API do servidor.
   viewVoter: function(){
     xhr.get({
       "url": "/api/v1/voters/"+this.state.inputs.viewVoter},
@@ -82,23 +105,49 @@ var app = React.createClass({
             + "Sua chave pública é: " + body);
       }.bind(this));
   },
+
+  // Assina um voto criptograficamente e envia esta assinatura para o servidor.
   vote: function(){
+
+    // Função util para dar refresh na página.
     var reload = function(){
       location.reload();
       console.log("reloading");
     }.bind(this);
+
+    // Função que cria a assinatura e envia para o servidor
+    // (chamada após a confirmação do usuáiro).
     var sign = function(){
+
+      // Primeiramente, mostramos a mensagem abaixo para o usuário.
       this.setState({showModal: <div>
         <p>Gerando assinatura criptográfica.</p>
         <p>Isso pode levar alguns instantes.</p>
       </div>});
+
+      // O setTimeout permite que a mensagem seja mostrada antes
+      // que o browser inicie a computação da assinatura.
       setTimeout(function(){
+
+        // Essa é a chamada mais crítica do sistema. lrs.sign assina a sua 
+        // declaração de voto, utilizando sua chave privada, em nome de todo
+        // o grupo de eleitores, de tal modo que seja impossível determinar,
+        // através da assinatura gerada, quem foi que a assinou. Isso pode levar
+        // bastante tempo caso o grupo seja grande; seu tempo é linear. Existem
+        // técnicas mais recentes que permitem assinaturas mais rápidas. A
+        // implementação de lrs pode ser auditada em github.com/maiavictor/lrs
         var signature = lrs.sign(referendum.publicKeys, keys, declaration(referendum, option));
+
+        // Aqui, enviamos essa assinatura para que o servidor armazene. Repare
+        // que a senha (chave-privada) do usuário jamais é enviada para o
+        // servidor; apenas a assinatura gerada com essa chave. Somente o
+        // eleitor tem capacidade de forjar um voto válido em seu nome.
         xhr.post({
           "url": "/api/v1/referendums/"+this.state.referendum.id+"/vote",
           "headers": {"Content-Type": "application/json"},
           "body": JSON.stringify({option: option, signature: signature})},
           function(err,resp,body){
+            // O resto é só UI e flores.
             if (body === "Sucesso!"){
               var receipt 
                 = "Este documento comprova seu voto no referendo '"+referendum.id+"'. "
@@ -125,22 +174,33 @@ var app = React.createClass({
           }.bind(this));
       }.bind(this), 1);
     }.bind(this);
+
+    // Nomes mais curtos a algumas variáveis úteis.
     var referendum = this.state.referendum;
     var login = this.state.inputs.newVoteLogin;
     var password = this.state.inputs.newVotePassword;
     var option = this.state.inputs.newVoteOption || this.state.referendum.options[0];
     var keys = {publicKey: null, privateKey: password};
+
+    // Encontramos a chave pública do usuário na lista.
     for (var i=0, l=referendum.voters.length; i<l; ++i)
       if (referendum.voters[i] === login)
         keys.publicKey = referendum.publicKeys[i];
     if (!keys.publicKey)
       return alert("Login inválido.");
+
+    // Solicitamos do usuário a confirmação do vota.
     this.setState({showModal: <div>
       <p>Deseja assinar a seguinte declaração?</p>
       <p className="declaration">"{declaration(referendum, option)}"</p>
       <p><button onClick={sign}>Sim</button><button onClick={reload}>Não</button></p>
     </div>});
   },
+
+  // Gera um par de chaves pública/privadas para o usuário, utilizando uma
+  // fonte de entropia confiável (window.crypto). A chave pública é enviada
+  // para o servidor e associada ao login do usuário, para que este possa
+  // utilizar um login pequeno ao invés de uma chave pública gigante.
   generate: function(){
     var login = this.state.inputs.newVoterLogin;
     this.state.inputs.newVoterKeys = lrs.gen();
@@ -163,6 +223,9 @@ var app = React.createClass({
           alert(res.body);
       }.bind(this));
   },
+
+  // Mostra os resultados do referendo, realizando
+  // uma simples contagem das declarações de voto.
   results: function results(referendum){
     var opts = {};
     for (var i=0, l=referendum.options.length; i<l; ++i)
@@ -174,6 +237,24 @@ var app = React.createClass({
       result.push({option: opt, count: opts[opt]})
     return result;
   },
+
+  // Essa é outra parte crítica do sistema. Aqui, realizamos uma
+  // verificação independente da validez do referendo. Para isso,
+  // precisamos checar se os 2 fatos apresentados na prova conferem;
+  // ou seja, se todos os votos são válidos, e se nenhum eleitor
+  // votou duas vezes. Para isso, são usadas as funções "verify" e
+  // "link" propostas no esquema de assinaturas de anel encadeados.
+  // Observe que ainda existe uma possibilidade de fraude não
+  // verificada aqui: a do distribuidor de informação censurar
+  // votos específicos para manipular o resultado. Por conta disso,
+  // é necessário que os eleitores verifiquem que suas assinaturas
+  // estão na prova do resultado. Se elas não estiverem, houve
+  // manipulação. Basta um único eleitor mostrar uma assinatura
+  // válida que não tenha sido distribuída pelo servidor para
+  // invalidar a eleição. Um último ataque restante seria, obviamente,
+  // uma desonestidade nesta própria função de validação. Por isso,
+  // para garantir a segurança máxima, esse tipo de sistema requer
+  // várias implementações independentes do procedimento abaixo.
   prove: function(){
     var referendum = this.state.referendum;
 
@@ -188,7 +269,7 @@ var app = React.createClass({
 
     setTimeout(function(){
 
-      // Are all votes signed by a valid voter?
+      // Confere se todos os votos são válidos.
       for (var i=0, l=referendum.votes.length; i<l; ++i)
         if (!(lrs.verify(
             referendum.publicKeys,
@@ -196,13 +277,13 @@ var app = React.createClass({
             declaration(referendum, referendum.votes[i].option))))
           return alert("Esse resultado NÃO está correto. Foram encontrados votos inválidos!");
 
-      // Are there no duplicate votes?
+      // Confere se nenhum eleitor votou duas vezes.
       for (var i=0, l=referendum.votes.length; i<l; ++i)
         for (var j=i+1; j<l; ++j)
           if (lrs.link(referendum.votes[i].signature, referendum.votes[j].signature))
             return alert("Esse resultado NÃO está correto. Foram encontrados votos duplicados!");
 
-      // Then this result is correct.
+      // Confirma a validez do resultado.
       this.setState({output
         : "Verificação realizada com sucesso. De acordo com os "
         + "procedimentos de validação e contagem implementados "
@@ -217,6 +298,10 @@ var app = React.createClass({
     }.bind(this), 1);
 
   },
+
+  // Gera a prova de que a eleição está correta.
+  // Essa função não verifia a prova, apenas cria
+  // uma versão humanamente legível da mesma.
   viewProof: function(){
     var referendum = this.state.referendum;
     var l = referendum.votes.length;
@@ -292,6 +377,8 @@ var app = React.createClass({
       + "2: 614–623. doi:10.1007/11424826_65.\n";
     this.forceUpdate();
   },
+
+  // Mostra lista de eleitores e chaves públicas de um referendo.
   viewVoters: function(){
     this.state.output 
       = "As partes identificadas pelos logins abaixo, e suas respectivas "
@@ -301,9 +388,13 @@ var app = React.createClass({
       }.bind(this)).join("\n\n");
     this.forceUpdate();
   },
+
+  // Esconde a textarea com resultados de provas, etc.
   hideOutput: function(){
     this.setState({output: ""});
   },
+
+  // Renderiza o HTML do site.
   render: function(){
     var input = function(field, password, onPressReturn){
       return <input
