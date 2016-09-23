@@ -1,12 +1,12 @@
 module.exports = {
   ptbrSentence: function(input){
-    return /^[A-Za-záàâãéèêíïóôõöúçñÁÀÂÃÉÈÍÏÓÔÕÖÚÇÑ.!?,-: ]+$/.test(input);
+    return /^[0-9A-Za-záàâãéèêíïóôõöúçñÁÀÂÃÉÈÍÏÓÔÕÖÚÇÑ.!?,-:\- ]+$/.test(input);
   },
   ptbrTitle: function(input){
-    return /^[A-Za-záàâãéèêíïóôõöúçñÁÀÂÃÉÈÍÏÓÔÕÖÚÇÑ ]+$/.test(input);
+    return /^[0-9A-Za-záàâãéèêíïóôõöúçñÁÀÂÃÉÈÍÏÓÔÕÖÚÇÑ\- ]+$/.test(input);
   },
   ptbrWord: function(input){
-    return /^[A-Za-záàâãéèêíïóôõöúçñÁÀÂÃÉÈÍÏÓÔÕÖÚÇÑ]+$/.test(input);
+    return /^[0-9A-Za-záàâãéèêíïóôõöúçñÁÀÂÃÉÈÍÏÓÔÕÖÚÇÑ]+$/.test(input);
   },
   hex: function(input){
     return /^[A-Fa-f0-9]+$/.test(input);
