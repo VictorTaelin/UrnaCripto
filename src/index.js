@@ -482,10 +482,10 @@ var app = React.createClass({
     var referendumPage = !referendum ? <div/> :
       <div>
         <h2 className="UrnaCriptoLogo" onClick={this.cleanState}>{referendum.title}</h2>
-        <Page title="Proposta">
+        <Page expand title="Proposta">
           <p>{referendum.proposal}</p>
         </Page>
-        <Page title="Votar">
+        <Page expand title="Votar">
           <table>
             <tbody>
               <tr>

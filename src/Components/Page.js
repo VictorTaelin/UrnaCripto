@@ -2,7 +2,7 @@ var React = require("react");
 var ReactDOM = require("react-dom");
 module.exports = React.createClass({
   getInitialState: function(){
-    return {expand: true};
+    return {expand: !!this.props.expand};
   },
   toggle: function(){
     this.setState({expand: !this.state.expand});
