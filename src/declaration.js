@@ -1,4 +1,4 @@
-module.exports = function optionMessage(referendum, option){
+module.exports = function(referendum, option){
   return "Quanto ao referendo '"+referendum.id+"', "
         + "entitulado '"+referendum.title+"', "
         + "de proposta '"+referendum.proposal+"', "

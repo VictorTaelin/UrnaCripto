@@ -4,7 +4,7 @@ var ReactDOM = require("react-dom");
 var ItemList = require("./Components/ItemList.js");
 var Page = require("./Components/Page.js");
 var lrs = require("lrs");
-var optionMessage = require("./optionMessage.js");
+var declaration = require("./declaration.js");
 
 var app = React.createClass({
   getInitialState: function(){
@@ -93,7 +93,7 @@ var app = React.createClass({
         <p>Isso pode levar alguns instantes.</p>
       </div>});
       setTimeout(function(){
-        var signature = lrs.sign(referendum.publicKeys, keys, optionMessage(referendum, option));
+        var signature = lrs.sign(referendum.publicKeys, keys, declaration(referendum, option));
         xhr.post({
           "url": "/api/v1/referendums/"+this.state.referendum.id+"/vote",
           "headers": {"Content-Type": "application/json"},
@@ -137,7 +137,7 @@ var app = React.createClass({
       return alert("Login inválido.");
     this.setState({showModal: <div>
       <p>Deseja assinar a seguinte declaração?</p>
-      <p className="optionMessage">"{optionMessage(referendum, option)}"</p>
+      <p className="declaration">"{declaration(referendum, option)}"</p>
       <p><button onClick={sign}>Sim</button><button onClick={reload}>Não</button></p>
     </div>});
   },
@@ -193,7 +193,7 @@ var app = React.createClass({
         if (!(lrs.verify(
             referendum.publicKeys,
             referendum.votes[i].signature,
-            optionMessage(referendum, referendum.votes[i].option))))
+            declaration(referendum, referendum.votes[i].option))))
           return alert("Esse resultado NÃO está correto. Foram encontrados votos inválidos!");
 
       // Are there no duplicate votes?
@@ -261,7 +261,7 @@ var app = React.createClass({
       + "Considere as seguintes mensagens:\n"
       + "\n"
       + referendum.votes.map(function(vote, i){
-        return "  - M["+i+"] = \""+optionMessage(referendum, vote.option)+"\"";
+        return "  - M["+i+"] = \""+declaration(referendum, vote.option)+"\"";
       }).join("\n")+"\n"
       + "\n"
       + "Considere as seguintes assinaturas:\n"

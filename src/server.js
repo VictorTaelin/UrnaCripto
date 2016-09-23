@@ -2,7 +2,7 @@ var express = require("express");
 var lrs = require("lrs");
 var app = express();
 var bodyParser = require("body-parser");
-var optionMessage = require("./optionMessage.js");
+var declaration = require("./declaration.js");
 var valid = require("./valid.js");
 var fs = require("fs");
 var state 
@@ -47,7 +47,7 @@ app.post("/api/v1/referendums/:id/vote", function(req, res){
     return res.send("Referendo não encontrado.");
   if (referendum.options.indexOf(vote.option) === -1)
     return res.send("Opção inválida.");
-  if (!lrs.verify(referendum.publicKeys, vote.signature, optionMessage(referendum, vote.option)))
+  if (!lrs.verify(referendum.publicKeys, vote.signature, declaration(referendum, vote.option)))
     return res.send("Assinatura criptográfica inválida (sua senha deve corresponder a um login autorizado a votar neste referendum).");
   for (var i=0, l=referendum.votes.length; i<l; ++i)
     if (lrs.link(referendum.votes[i].signature, vote.signature))

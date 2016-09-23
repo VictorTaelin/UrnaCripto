@@ -142,7 +142,7 @@ td {
   text-decoration: underline;
   cursor: pointer;
 }
-.optionMessage {
+.declaration {
   font-style: italic;
   font-size: 14px;
 }
