@@ -517,38 +517,36 @@ var app = React.createClass({
           </table>
           <button onClick={this.vote}>Votar!</button>
         </Page>
-        <div style={{"display": "none"}}>
-          <Page title="Resultado">
-            <table>
-              <tbody>{
-                this.results(referendum).map(function(result,i){
-                  return <tr key={i}>
-                    <td>- {result.option}: </td>
-                    <td>{result.count}</td>
-                  </tr>;
-                })
-              }</tbody>
-            </table>
-            <p>({referendum.votes.length} / {referendum.voters.length} votaram)</p>
-          </Page>
-          <Page title="Prova" onToggle={this.hideOutput}>
-            <div><button className="actionButton" onClick={this.viewVoters}>Mostre a lista de partes envolvidas.{"\u00a0"}</button></div>
-            <div><button className="actionButton" onClick={this.viewProof}>Prove que o resultado está correto.{"\u00a0"}</button></div>
-            <div><button className="actionButton" onClick={this.prove}>Verifique a prova neste computador.</button></div>
-            {this.state.output ? 
+        <Page title="Resultado">
+          <table>
+            <tbody>{
+              this.results(referendum).map(function(result,i){
+                return <tr key={i}>
+                  <td>- {result.option}: </td>
+                  <td>{result.count}</td>
+                </tr>;
+              })
+            }</tbody>
+          </table>
+          <p>({referendum.votes.length} / {referendum.voters.length} votaram)</p>
+        </Page>
+        <Page title="Prova" onToggle={this.hideOutput}>
+          <div><button className="actionButton" onClick={this.viewVoters}>Mostre a lista de partes envolvidas.{"\u00a0"}</button></div>
+          <div><button className="actionButton" onClick={this.viewProof}>Prove que o resultado está correto.{"\u00a0"}</button></div>
+          <div><button className="actionButton" onClick={this.prove}>Verifique a prova neste computador.</button></div>
+          {this.state.output ? 
+            <div>
               <div>
-                <div>
-                  <textarea cols="40" rows="12" value={this.state.output} readOnly></textarea>
-                </div>
-                <div>
-                  <a download="documento.txt" href={"data:text/plain;charset=utf-8,"+encodeURIComponent(this.state.output)}>
-                    Baixar
-                  </a>
-                </div>
-                <br/>
-              </div> : ""}
-          </Page>
-        </div>
+                <textarea cols="40" rows="12" value={this.state.output} readOnly></textarea>
+              </div>
+              <div>
+                <a download="documento.txt" href={"data:text/plain;charset=utf-8,"+encodeURIComponent(this.state.output)}>
+                  Baixar
+                </a>
+              </div>
+              <br/>
+            </div> : ""}
+        </Page>
       </div>;
     var modal = this.state.showModal ? <div className="modal">{this.state.showModal}</div> : <div/>;
     return <div id="app">
