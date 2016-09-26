@@ -4,8 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "preinstall": "npm install -g reactify",
-    "bundle": "browserify -t reactify -d src/index.js > app/index.min.js",
+    "bundle": "./node_modules/.bin/browserify -t reactify -d src/index.js > app/index.min.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Victor Maia",
@@ -16,8 +15,11 @@
     "lrs": "^0.1.5",
     "react": "^15.3.1",
     "react-dom": "^15.3.2",
-    "reactify": "^1.1.1",
     "websocket": "^1.0.23",
     "xhr": "^2.2.2"
+  },
+  "devDependencies": {
+    "browserify": "^13.1.0",
+    "reactify": "^1.1.1"
   }
 }
